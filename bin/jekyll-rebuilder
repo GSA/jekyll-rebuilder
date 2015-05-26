@@ -1,3 +1,36 @@
 #!/usr/bin/env ruby
 
-puts "Hello"
+require 'webrick'
+require 'optparse'
+require 'ostruct'
+
+LOG_FILE = 'jekyll-rebuilder.log'
+
+options = OpenStruct.new
+OptionParser.new do |opts|
+  opts.banner = "Usage: jekyll-rebuilder --port PORT --secret SECRET"
+
+  opts.on("-p", "--port [PORT]", Integer, "Port to listen on") do |port|
+    options.port = port
+  end
+
+  opts.on("-s", "--secret [SECRET]", String, "Path to accept hook request from") do |secret|
+    options.secret = secret
+  end
+end.parse!
+
+raise "Missing arguments. Consult jekyll-rebuilder --help" unless options.port && options.secret
+raise "Current directory missing _config.yml" unless File.exists?('_config.yml')
+
+puts ">> Listening on http://0.0.0.0:#{options.port}/#{options.secret}/ for webhook requests."
+puts ">> Will then refresh jekyll site at #{Dir.pwd}"
+
+server = WEBrick::HTTPServer.new :Port => options.port
+server.mount_proc "/#{options.secret}/" do |req, res|
+  `git pull origin master 2>&1 > #{LOG_FILE}`
+  `jekyll build 2>&1 >> #{LOG_FILE}`
+  res.body = "Whargleblargl"
+end
+
+trap 'INT' do server.shutdown end
+server.start

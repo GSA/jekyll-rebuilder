@@ -8,5 +8,5 @@ Gem::Specification.new do |s|
   s.email       = 'dysonhug@gmail.com'
   s.license     = 'MIT'
   s.homepage    = 'http://github.com/dysonhug/jekyll-rebuilder'
-  s.executables << 'jekyll-builder'
+  s.executables << 'jekyll-rebuilder'
 end
