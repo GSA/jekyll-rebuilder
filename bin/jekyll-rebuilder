@@ -5,6 +5,7 @@ require 'optparse'
 require 'ostruct'
 
 LOG_FILE = 'jekyll-rebuilder.log'
+DRAFT_CONFIG_FILE = '_drafts_config.yml'
 
 options = OpenStruct.new
 OptionParser.new do |opts|
@@ -29,7 +30,7 @@ server = WEBrick::HTTPServer.new :Port => options.port
 server.mount_proc "/#{options.secret}/" do |req, res|
   `git pull origin master 2>&1 > #{LOG_FILE}`
   `jekyll build 2>&1 >> #{LOG_FILE}`
-  `jekyll build --config _drafts_config.yml 2>&1 >> #{LOG_FILE}` if File.exists?('drafts_config.yml')
+  `jekyll build --config #{DRAFT_CONFIG_FILE} 2>&1 >> #{LOG_FILE}` if File.exists?(DRAFT_CONFIG_FILE)
   res.body = "Whargleblargl"
 end
 
