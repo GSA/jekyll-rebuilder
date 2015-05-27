@@ -29,6 +29,7 @@ server = WEBrick::HTTPServer.new :Port => options.port
 server.mount_proc "/#{options.secret}/" do |req, res|
   `git pull origin master 2>&1 > #{LOG_FILE}`
   `jekyll build 2>&1 >> #{LOG_FILE}`
+  `jekyll build --config _drafts_config.yml 2>&1 >> #{LOG_FILE}` if File.exists?('drafts_config.yml')
   res.body = "Whargleblargl"
 end
 

@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'jekyll-rebuilder'
-  s.version     = '1.0.0'
+  s.version     = '1.1.0'
   s.date        = '2015-05-26'
   s.summary     = "Jekyll Rebuilder"
   s.description = "Github webhook compatible jekyll site rebuilder"
