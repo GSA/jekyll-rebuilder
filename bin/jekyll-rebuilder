@@ -42,6 +42,7 @@ server = WEBrick::HTTPServer.new :Port => options.port
 server.mount_proc "/#{options.secret}/" do |req, res|
   `git fetch origin 2>&1 > #{LOG_FILE}`
   `git reset --hard origin/#{options.branch} 2>&1 > #{LOG_FILE}`
+  `git checkout #{options.branch} 2>&1 > #{LOG_FILE}`
   `jekyll build --config #{options.config} 2>&1 >> #{LOG_FILE}`
   `jekyll build --drafts --config #{DRAFT_CONFIG_FILE} 2>&1 >> #{LOG_FILE}` if File.exists?(DRAFT_CONFIG_FILE)
   res.body = "jekyll build completed @ #{Time.now}"
