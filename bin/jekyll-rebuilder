@@ -5,7 +5,9 @@ require 'optparse'
 require 'ostruct'
 
 LOG_FILE = 'jekyll-rebuilder.log'
+CONFIG_FILE = '_config.yml'
 DRAFT_CONFIG_FILE = '_drafts_config.yml'
+BRANCH = 'master'
 
 options = OpenStruct.new
 OptionParser.new do |opts|
@@ -18,10 +20,20 @@ OptionParser.new do |opts|
   opts.on("-s", "--secret [SECRET]", String, "Path to accept hook request from") do |secret|
     options.secret = secret
   end
+
+  options.config = CONFIG_FILE
+  opts.on("-c", "--config [CONFIG]", String, "Config file to use") do |config|
+    options.config = config
+  end
+
+  options.branch = BRANCH
+  opts.on("-b", "--branch [BRANCH]", String, "Github branch to pull from") do |branch|
+    options.branch = branch
+  end
 end.parse!
 
 raise "Missing arguments. Consult jekyll-rebuilder --help" unless options.port && options.secret
-raise "Current directory missing _config.yml" unless File.exists?('_config.yml')
+raise "Current directory missing #{options.config}" unless File.exists?(options.config)
 
 puts ">> Listening on http://0.0.0.0:#{options.port}/#{options.secret}/ for webhook requests."
 puts ">> Will then refresh jekyll site at #{Dir.pwd}"
@@ -29,8 +41,8 @@ puts ">> Will then refresh jekyll site at #{Dir.pwd}"
 server = WEBrick::HTTPServer.new :Port => options.port
 server.mount_proc "/#{options.secret}/" do |req, res|
   `git fetch origin 2>&1 > #{LOG_FILE}`
-  `git reset --hard origin/master 2>&1 > #{LOG_FILE}`
-  `jekyll build 2>&1 >> #{LOG_FILE}`
+  `git reset --hard origin/#{options.branch} 2>&1 > #{LOG_FILE}`
+  `jekyll build --config #{options.config} 2>&1 >> #{LOG_FILE}`
   `jekyll build --drafts --config #{DRAFT_CONFIG_FILE} 2>&1 >> #{LOG_FILE}` if File.exists?(DRAFT_CONFIG_FILE)
   res.body = "jekyll build completed @ #{Time.now}"
 end
