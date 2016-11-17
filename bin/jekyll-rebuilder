@@ -32,7 +32,7 @@ OptionParser.new do |opts|
   end
 
   options.s3bucket = nil
-  opts.on("--s3bucket [S3BUCKET]", String, "Github branch to pull from") do |s3bucket|
+  opts.on("--s3bucket [S3BUCKET]", String, "S3 bucket to push files") do |s3bucket|
     options.s3bucket = s3bucket
   end
 end.parse!
@@ -46,13 +46,18 @@ puts ">> Will then refresh jekyll site at #{Dir.pwd}"
 server = WEBrick::HTTPServer.new :Port => options.port
 server.mount_proc "/#{options.secret}/" do |req, res|
   `git fetch origin 2>&1 > #{LOG_FILE}`
-  `git reset --hard origin/#{options.branch} 2>&1 > #{LOG_FILE}`
+  `git reset --hard origin/#{options.branch} 2>&1 >> #{LOG_FILE}`
   `git checkout #{options.branch} 2>&1 > #{LOG_FILE}`
   `jekyll build --config #{options.config} 2>&1 >> #{LOG_FILE}`
   `jekyll build --drafts --config #{DRAFT_CONFIG_FILE} 2>&1 >> #{LOG_FILE}` if File.exists?(DRAFT_CONFIG_FILE)
-  `s3cmd sync --delete-removed _site/ s3://#{options.s3bucket} 2>&1 > #{LOG_FILE}` if options.s3bucket
+  `s3cmd sync --delete-removed _site/ s3://#{options.s3bucket} 2>&1 >> #{LOG_FILE}` if options.s3bucket
   res.body = "jekyll build completed @ #{Time.now}"
-  res.body = res.body + ",\n" + "and synced to s3" if options.s3bucket
+  res.body = res.body + ",\n" + "and synced to s3://#{options.s3bucket}." if options.s3bucket
+
+  res.body = res.body + "\n\n============== log ================"
+  File.foreach(LOG_FILE) do |line|
+        res.body = res.body + "\n" +line
+  end
 end
 
 trap 'INT' do server.shutdown end
