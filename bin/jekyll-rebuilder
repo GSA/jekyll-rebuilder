@@ -30,6 +30,11 @@ OptionParser.new do |opts|
   opts.on("-b", "--branch [BRANCH]", String, "Github branch to pull from") do |branch|
     options.branch = branch
   end
+
+  options.s3bucket = nil
+  opts.on("--s3bucket [S3BUCKET]", String, "Github branch to pull from") do |s3bucket|
+    options.s3bucket = s3bucket
+  end
 end.parse!
 
 raise "Missing arguments. Consult jekyll-rebuilder --help" unless options.port && options.secret
@@ -45,7 +50,9 @@ server.mount_proc "/#{options.secret}/" do |req, res|
   `git checkout #{options.branch} 2>&1 > #{LOG_FILE}`
   `jekyll build --config #{options.config} 2>&1 >> #{LOG_FILE}`
   `jekyll build --drafts --config #{DRAFT_CONFIG_FILE} 2>&1 >> #{LOG_FILE}` if File.exists?(DRAFT_CONFIG_FILE)
+  `s3cmd sync --delete-removed _site/ s3://#{options.s3bucket} 2>&1 > #{LOG_FILE}` if options.s3bucket
   res.body = "jekyll build completed @ #{Time.now}"
+  res.body = res.body + ",\n" + "and synced to s3" if options.s3bucket
 end
 
 trap 'INT' do server.shutdown end
