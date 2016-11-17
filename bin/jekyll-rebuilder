@@ -50,6 +50,8 @@ server.mount_proc "/#{options.secret}/" do |req, res|
   `git checkout #{options.branch} 2>&1 > #{LOG_FILE}`
   `jekyll build --config #{options.config} 2>&1 >> #{LOG_FILE}`
   `jekyll build --drafts --config #{DRAFT_CONFIG_FILE} 2>&1 >> #{LOG_FILE}` if File.exists?(DRAFT_CONFIG_FILE)
+  `s3cmd sync --exclude '*.*' --include  '*.css' --mime-type="text/css" _site/ s3://#{options.s3bucket} 2>&1 >> #{LOG_FILE}`
+  `s3cmd sync --exclude '*.*' --include  '*.js' --mime-type="application/javascript" _site/ s3://#{options.s3bucket} 2>&1 >> #{LOG_FILE}`
   `s3cmd sync --delete-removed _site/ s3://#{options.s3bucket} 2>&1 >> #{LOG_FILE}` if options.s3bucket
   res.body = "jekyll build completed @ #{Time.now}"
   res.body = res.body + ",\n" + "and synced to s3://#{options.s3bucket}." if options.s3bucket
