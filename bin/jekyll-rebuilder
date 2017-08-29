@@ -51,9 +51,9 @@ server.mount_proc "/#{options.secret}/" do |req, res|
   `jekyll build --config #{options.config} >> #{LOG_FILE} 2>&1`
   `jekyll build --drafts --config #{DRAFT_CONFIG_FILE} >> #{LOG_FILE} 2>&1` if File.exists?(DRAFT_CONFIG_FILE)
   if options.s3bucket
-    `s3cmd sync --exclude '*.*' --include  '*.css' --mime-type="text/css" _site/ s3://#{options.s3bucket} >> #{LOG_FILE} 2>&1`
-    `s3cmd sync --exclude '*.*' --include  '*.js' --mime-type="application/javascript" _site/ s3://#{options.s3bucket} >> #{LOG_FILE} 2>&1`
-    `s3cmd sync --delete-removed _site/ s3://#{options.s3bucket} >> #{LOG_FILE} 2>&1`
+    `s3cmd sync --no-preserve --exclude '*.*' --include  '*.css' --mime-type="text/css" _site/ s3://#{options.s3bucket} >> #{LOG_FILE} 2>&1`
+    `s3cmd sync --no-preserve --exclude '*.*' --include  '*.js' --mime-type="application/javascript" _site/ s3://#{options.s3bucket} >> #{LOG_FILE} 2>&1`
+    `s3cmd sync --no-preserve --delete-removed _site/ s3://#{options.s3bucket} >> #{LOG_FILE} 2>&1`
   end
   res.body = "jekyll build completed @ #{Time.now}"
   res.body = res.body + ",\n" + "and synced to s3://#{options.s3bucket}." if options.s3bucket
