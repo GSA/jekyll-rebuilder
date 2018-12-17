@@ -5,7 +5,6 @@ require 'optparse'
 require 'ostruct'
 
 LOG_FILE = 'jekyll-rebuilder.log'
-CONFIG_FILE = '_config.yml'
 DRAFT_CONFIG_FILE = '_drafts_config.yml'
 BRANCH = 'master'
 
@@ -21,7 +20,6 @@ OptionParser.new do |opts|
     options.secret = secret
   end
 
-  options.config = CONFIG_FILE
   opts.on("-c", "--config [CONFIG]", String, "Config file to use") do |config|
     options.config = config
   end
@@ -38,18 +36,23 @@ OptionParser.new do |opts|
 end.parse!
 
 raise "Missing arguments. Consult jekyll-rebuilder --help" unless options.port && options.secret
-raise "Current directory missing #{options.config}" unless File.exists?(options.config)
+raise "Current directory missing #{options.config}" if options.config && !File.exists?(options.config)
 
 puts ">> Listening on http://0.0.0.0:#{options.port}/#{options.secret}/ for webhook requests."
 puts ">> Will then refresh jekyll site at #{Dir.pwd}"
+
+jekyll_build_args = []
+
+# Append any jekyll arguments
+options.config && jekyll_build_args.push("--config #{options.config}")
 
 server = WEBrick::HTTPServer.new :Port => options.port
 server.mount_proc "/#{options.secret}/" do |req, res|
   `git fetch origin 2>&1 > #{LOG_FILE}`
   `git reset --hard origin/#{options.branch} >> #{LOG_FILE} 2>&1`
   `git checkout #{options.branch} > #{LOG_FILE} 2>&1`
-  `jekyll build --config #{options.config} >> #{LOG_FILE} 2>&1`
-  `jekyll build --drafts --config #{DRAFT_CONFIG_FILE} >> #{LOG_FILE} 2>&1` if File.exists?(DRAFT_CONFIG_FILE)
+  `jekyll build #{jekyll_build_args.join(" ")} >> #{LOG_FILE} 2>&1`
+  `jekyll build --drafts --config #{DRAFT_CONFIG_FILE} #{jekyll_build_args} >> #{LOG_FILE} 2>&1` if File.exists?(DRAFT_CONFIG_FILE)
   if options.s3bucket
     `s3cmd sync --no-preserve --exclude '*.*' --include  '*.css' --mime-type="text/css" _site/ s3://#{options.s3bucket} >> #{LOG_FILE} 2>&1`
     `s3cmd sync --no-preserve --exclude '*.*' --include  '*.js' --mime-type="application/javascript" _site/ s3://#{options.s3bucket} >> #{LOG_FILE} 2>&1`
